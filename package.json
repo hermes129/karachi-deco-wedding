@@ -1,0 +1,19 @@
+{
+  "name": "karachi-deco-wedding",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build --base=./",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@fontsource/dm-mono": "^5.0.0",
+    "@fontsource/jost": "^5.0.0",
+    "gsap": "^3.15.0"
+  },
+  "devDependencies": {
+    "vite": "^7.0.0"
+  }
+}

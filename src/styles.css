@@ -1,0 +1,549 @@
+/* Self-hosted faces, so nothing render-blocking and it works offline.
+   Jost is the Futura lineage, which is the geometric the Deco era actually
+   drew with. Every other site in this set is serif-led; this one is not, and
+   that is the point of it. */
+@import '@fontsource/jost/300.css';
+@import '@fontsource/jost/400.css';
+@import '@fontsource/jost/500.css';
+@import '@fontsource/jost/600.css';
+@import '@fontsource/dm-mono/400.css';
+@import '@fontsource/dm-mono/500.css';
+
+:root {
+  --black:      #0b0c0b;
+  --black-soft: #141614;
+  --emerald:    #0d4f3c;
+  --emerald-lt: #147054;
+  --champagne:  #c8a35a;
+  --champagne-lt: #ddc084;
+  --bone:       #e9e2d2;
+  --bone-dim:   #b7b0a1;
+
+  --sans: 'Jost', 'Century Gothic', system-ui, sans-serif;
+  --mono: 'DM Mono', 'Courier New', monospace;
+
+  --edge: clamp(20px, 5vw, 84px);
+  --space: clamp(72px, 12vh, 148px);
+
+  --motif-stroke: var(--champagne);
+  --motif-accent: var(--emerald-lt);
+  --motif-weight: 1.2;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+html { background: var(--black); scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--black);
+  color: var(--bone);
+  font-family: var(--sans);
+  font-size: 17px;
+  font-weight: 300;
+  line-height: 1.65;
+  overflow-x: hidden;
+}
+body.is-locked { overflow: hidden; }
+
+img { display: block; width: 100%; }
+button, input, select, textarea { font: inherit; }
+a { color: inherit; }
+address { font-style: normal; }
+h2, p { margin-top: 0; }
+
+/* Deco display is geometric caps with air between the letters. The tracking
+   is doing as much work here as the weight. */
+h2 {
+  margin: 0 0 24px;
+  font-family: var(--sans);
+  font-size: clamp(38px, 5.6vw, 84px);
+  font-weight: 300;
+  line-height: 1.02;
+  letter-spacing: -0.015em;
+}
+h2 em { font-style: normal; color: var(--champagne); }
+
+.eyebrow {
+  margin: 0 0 14px;
+  color: var(--champagne);
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.sr-only {
+  position: absolute !important;
+  width: 1px !important; height: 1px !important;
+  padding: 0 !important; margin: -1px !important;
+  overflow: hidden !important; clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important; border: 0 !important;
+}
+.skip-link {
+  position: fixed; z-index: 1000; top: 14px; left: 14px;
+  padding: 12px 18px;
+  background: var(--champagne); color: var(--black);
+  font-family: var(--mono); font-size: 13px; letter-spacing: 0.1em;
+  text-transform: uppercase; text-decoration: none;
+  transform: translateY(-200%); transition: transform 0.2s;
+}
+.skip-link:focus { transform: translateY(0); }
+:focus-visible { outline: 2px solid var(--champagne); outline-offset: 4px; }
+
+/* ── Buttons ─────────────────────────────────────────────────────────── */
+.solid-button, .line-button {
+  min-height: 48px;
+  padding: 14px 26px;
+  border: 1px solid var(--champagne);
+  font-family: var(--mono); font-size: 13px; font-weight: 500;
+  letter-spacing: 0.16em; text-transform: uppercase; text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.25s, color 0.25s;
+}
+.solid-button { background: var(--champagne); color: var(--black); }
+.line-button { background: transparent; color: var(--champagne); }
+.solid-button:hover { background: var(--champagne-lt); }
+.line-button:hover { background: var(--champagne); color: var(--black); }
+
+/* ── Motif hosts ──────────────────────────────────────────────────────────
+   An injected <svg> carries a viewBox and no width or height, so without this
+   it takes width:100% and an auto height from its own aspect ratio. For the
+   band motifs, whose viewBox is 160:1, that renders the whole thing 8px tall
+   inside a 30px host and quietly defeats the slice sizing rule. */
+.motif { display: block; width: 100%; height: 100%; overflow: visible; }
+.motif-video { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+/* ═══ The gate ════════════════════════════════════════════════════════
+   Two panels, each painting the full-width door image and clipping it.
+   overflow:hidden is load-bearing: without it both panels paint 100vw and
+   parting them swaps the halves instead of opening them. */
+.opener {
+  position: fixed; z-index: 90; inset: 0;
+  display: grid; place-items: center;
+  overflow: hidden;
+  background: var(--black);
+  isolation: isolate;
+}
+.opener__scene { position: absolute; inset: 0; z-index: 1; }
+.opener__panel {
+  position: absolute; top: 0; bottom: 0;
+  width: 50%;
+  overflow: hidden;
+  will-change: transform;
+  background: var(--black);
+}
+.opener__panel--left { left: 0; }
+.opener__panel--right { right: 0; }
+/* The doors are 1400x2508, ratio 0.56, so on any landscape viewport the
+   cover crop throws most of the frame away. 40% keeps the band from the top
+   rail down through the handles — the part that reads unmistakably as a gate.
+   Centring instead lands on the plain lower panels. Portrait viewports are
+   taller than the image is wide, so the height governs there and this value
+   does nothing; the whole door including the fan lunette shows. */
+.opener__art {
+  position: absolute; top: 0;
+  width: 100vw; max-width: none; height: 100%;
+  object-fit: cover; object-position: center 40%;
+  pointer-events: none; user-select: none;
+}
+.opener__panel--left .opener__art { left: 0; }
+.opener__panel--right .opener__art { right: 0; }
+
+.opener__card {
+  position: relative; z-index: 3;
+  display: grid; justify-items: center; gap: 18px;
+  padding: clamp(26px, 5vw, 46px) clamp(30px, 7vw, 74px);
+  border: 1px solid var(--champagne);
+  outline: 1px solid rgba(200, 163, 90, 0.4);
+  outline-offset: -8px;
+  background: rgba(11, 12, 11, 0.82);
+  backdrop-filter: blur(3px);
+  text-align: center;
+}
+.opener__address, .opener__date {
+  margin: 0;
+  color: var(--champagne);
+  font-family: var(--mono); font-size: 13px;
+  letter-spacing: 0.24em; text-transform: uppercase;
+}
+.opener__names {
+  display: flex; align-items: center; gap: clamp(10px, 2vw, 20px);
+  margin: 0;
+  font-size: clamp(34px, 7vw, 68px); font-weight: 300;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  white-space: nowrap;
+}
+.opener__names i { color: var(--champagne); font-size: 0.42em; font-style: normal; }
+.opener__rule { width: 100%; height: 1px; background: rgba(200, 163, 90, 0.5); }
+.opener__trigger {
+  margin-top: 6px;
+  min-height: 48px; padding: 14px 28px;
+  border: 1px solid var(--champagne);
+  background: var(--champagne); color: var(--black);
+  font-family: var(--mono); font-size: 13px; font-weight: 500;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  cursor: pointer;
+}
+.opener__trigger:hover { background: var(--champagne-lt); }
+
+/* ═══ Hero ════════════════════════════════════════════════════════════ */
+/* isolation is load-bearing, not decoration. html carries a background, which
+   stops body's background propagating to the canvas — so body paints as an
+   ordinary element, and the art, veil and frame at negative z-index fall
+   behind it. The hero renders as a flat black panel with no console error.
+   Isolating .hero keeps its own negative layers inside it.
+
+   align-content matters as much: a grid whose rows default to stretch spreads
+   four children over 100svh and leaves a canyon between the title and the
+   dek. Centring the row group instead sets the spacing from the type. */
+.hero {
+  position: relative;
+  min-height: 100svh;
+  display: grid; justify-items: center; align-content: center;
+  padding: var(--space) var(--edge);
+  overflow: hidden;
+  isolation: isolate;
+  text-align: center;
+}
+.hero__art {
+  position: absolute; inset: 0; z-index: -3;
+  width: 100%; height: 100%;
+  object-fit: cover;
+}
+/* Every stop here was solved against the composited pixels, not guessed.
+   The facade's lit windows land behind the title on narrow viewports, where
+   the cover crop zooms into them: at 0.55 / 0.34 / 0.78 the worst pixel under
+   NOOR & ZAYN read 2.92:1 against the 3.0 that large text needs, and the
+   right-hand meta line 4.48 against 4.5. Both are near misses caused by the
+   same handful of bright windows. 0.62 / 0.44 / 0.80 clears them at every
+   width without flattening the photograph, which is the point of using one. */
+.hero__veil {
+  position: absolute; inset: 0; z-index: -2;
+  background:
+    linear-gradient(180deg, rgba(11, 12, 11, 0.62) 0%, rgba(11, 12, 11, 0.44) 42%, rgba(11, 12, 11, 0.8) 100%);
+}
+.hero__frame {
+  position: absolute; inset: clamp(14px, 2.4vw, 30px); z-index: -1;
+  border: 1px solid rgba(200, 163, 90, 0.55);
+  pointer-events: none;
+}
+.hero__frame span {
+  position: absolute; inset: 7px;
+  border: 1px solid rgba(200, 163, 90, 0.28);
+}
+.hero__meta {
+  position: absolute; top: clamp(30px, 6vh, 60px);
+  margin: 0;
+  color: var(--bone);
+  font-family: var(--mono); font-size: 13px;
+  letter-spacing: 0.18em; text-transform: uppercase;
+}
+.hero__meta--left { left: calc(var(--edge) + 14px); }
+.hero__meta--right { right: calc(var(--edge) + 14px); }
+.hero__title {
+  display: flex; align-items: center; justify-content: center;
+  gap: clamp(12px, 2.6vw, 34px);
+  margin: 0;
+  font-size: clamp(46px, 12vw, 168px); font-weight: 300;
+  letter-spacing: 0.04em; line-height: 0.94;
+}
+.hero__title i { color: var(--champagne); font-size: 0.34em; font-style: normal; }
+.hero__dek {
+  margin: 26px 0 0;
+  color: var(--bone);
+  font-size: clamp(16px, 1.5vw, 20px); font-weight: 300;
+}
+
+/* ═══ Sections ════════════════════════════════════════════════════════ */
+.invitation, .story, .venue, .programme, .attire, .countdown, .rsvp {
+  position: relative;
+  padding: var(--space) var(--edge);
+}
+.invitation, .attire { background: var(--black-soft); }
+.venue { background: var(--emerald); }
+.countdown { background: var(--black-soft); }
+
+/* ── Invitation ──────────────────────────────────────────────────────── */
+.invitation {
+  display: grid; align-items: center;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: clamp(34px, 6vw, 92px);
+}
+.invitation__ornament {
+  position: absolute; top: 0; left: 50%;
+  width: min(38vw, 280px); height: 90px;
+  transform: translate(-50%, -50%);
+  opacity: 0.65;
+}
+.invitation__copy > p:last-child { max-width: 46ch; color: var(--bone-dim); }
+.invitation__plate { justify-self: center; width: min(100%, 440px); }
+
+/* ── The date, as a dateline ─────────────────────────────────────────
+   Numerals grouped rather than spread, a rule, and a caption carrying the
+   month, year and place that three numerals cannot say on their own. */
+.date-scratch { width: 100%; user-select: none; -webkit-user-select: none; }
+.date-scratch__stage {
+  position: relative;
+  display: grid; place-items: center;
+  min-height: clamp(150px, 20vw, 200px);
+  padding: clamp(18px, 3vw, 26px);
+  overflow: hidden;
+  border: 1px solid var(--champagne);
+  background: var(--black);
+}
+.date-scratch__stage::after {
+  content: '';
+  position: absolute; inset: clamp(7px, 1.4vw, 10px);
+  border: 1px solid rgba(200, 163, 90, 0.34);
+  pointer-events: none;
+}
+.date-scratch__value {
+  display: grid; grid-template-columns: 1fr; justify-items: center;
+  gap: clamp(12px, 2vw, 17px);
+  width: 100%;
+}
+.date-scratch__numerals {
+  display: flex; align-items: center; justify-content: center;
+  gap: clamp(10px, 1.8vw, 20px);
+  color: var(--champagne);
+  font-size: clamp(44px, 6vw, 78px); font-weight: 300;
+  letter-spacing: 0.02em; line-height: 1; white-space: nowrap;
+}
+/* Held above 24px at every width on purpose: below that the small-text bar
+   applies and champagne on black would have to clear 4.5 rather than 3. */
+.date-scratch__numerals i {
+  color: var(--champagne);
+  font-size: clamp(26px, 3vw, 34px); font-style: normal;
+}
+.date-scratch__rule { width: 100%; height: 1px; background: rgba(200, 163, 90, 0.42); }
+.date-scratch__caption {
+  color: var(--bone);
+  font-family: var(--mono); font-size: 13px;
+  letter-spacing: 0.16em; text-transform: uppercase; text-align: center;
+}
+.date-scratch__canvas {
+  position: absolute; z-index: 2; inset: 0;
+  width: 100%; height: 100%;
+  touch-action: none; cursor: crosshair;
+  transition: opacity 0.5s ease;
+}
+.date-scratch__hint {
+  position: absolute; z-index: 3; top: 50%; left: 50%;
+  margin: 0; padding: 10px 14px;
+  border: 1px solid var(--champagne);
+  background: var(--black); color: var(--champagne);
+  font-family: var(--mono); font-size: 13px;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  white-space: nowrap;
+  transform: translate(-50%, -50%);
+  pointer-events: none; transition: opacity 0.2s ease;
+}
+.date-scratch__button {
+  width: 100%; min-height: 48px; margin-top: 12px;
+  border: 1px solid var(--champagne);
+  background: transparent; color: var(--champagne);
+  font-family: var(--mono); font-size: 13px; font-weight: 500;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  cursor: pointer;
+}
+.date-scratch__button:hover { background: var(--champagne); color: var(--black); }
+.date-scratch.is-scratching .date-scratch__hint { opacity: 0; }
+.date-scratch.is-revealed .date-scratch__canvas { opacity: 0; pointer-events: none; }
+.date-scratch.is-revealed .date-scratch__hint,
+.date-scratch.is-revealed .date-scratch__button { opacity: 0; pointer-events: none; }
+
+/* ── Story ───────────────────────────────────────────────────────────── */
+.story__head { max-width: 62ch; margin-bottom: clamp(40px, 6vw, 72px); }
+.story__lead { color: var(--bone-dim); font-size: clamp(16px, 1.4vw, 19px); }
+.story__row {
+  display: grid; align-items: center;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  gap: clamp(30px, 5vw, 76px);
+}
+.story__plate { margin: 0; padding: 10px; border: 1px solid rgba(200, 163, 90, 0.5); }
+.story__plate img { aspect-ratio: 4 / 3; object-fit: cover; }
+.story__plate figcaption {
+  margin-top: 14px;
+  color: var(--bone-dim);
+  font-family: var(--mono); font-size: 13px; letter-spacing: 0.08em;
+}
+.story__note p:last-child { color: var(--bone-dim); max-width: 40ch; }
+
+/* ── Venue ───────────────────────────────────────────────────────────── */
+.venue { display: grid; justify-items: center; text-align: center; }
+.venue__card { max-width: 54ch; }
+.venue__card address { margin-bottom: 10px; font-size: clamp(17px, 1.5vw, 20px); }
+.venue__time { color: #cfe4d9; }
+/* The band is 4800 units wide and only ~1300 of them are ever on screen, so
+   the host has to do the clipping: `.motif` keeps overflow visible for the
+   marks that are meant to breathe past their box, and a sliced band is not
+   one of them. Without this the ziggurat paints four screens to the right. */
+.venue__rule {
+  width: 100%; height: 48px; margin-top: clamp(34px, 5vw, 56px);
+  overflow: hidden;
+  --motif-stroke: var(--champagne);
+  --motif-accent: var(--bone);
+  opacity: 0.85;
+}
+
+/* ── Programme ───────────────────────────────────────────────────────── */
+.programme__head { margin-bottom: clamp(30px, 5vw, 54px); }
+.programme__list { margin: 0; padding: 0; list-style: none; border-top: 1px solid rgba(200, 163, 90, 0.34); }
+.programme__list li {
+  display: grid; align-items: baseline;
+  grid-template-columns: minmax(90px, 0.24fr) minmax(0, 1fr);
+  gap: clamp(16px, 3vw, 48px);
+  padding: clamp(20px, 3vw, 32px) 0;
+  border-bottom: 1px solid rgba(200, 163, 90, 0.34);
+}
+.programme__list time {
+  color: var(--champagne);
+  font-size: clamp(24px, 3vw, 40px); font-weight: 300; letter-spacing: 0.02em;
+}
+.programme__list span { display: grid; gap: 4px; }
+.programme__list strong { font-size: clamp(18px, 1.8vw, 24px); font-weight: 400; }
+.programme__list span span, .programme__list strong + * { color: var(--bone-dim); }
+.programme__list span { color: var(--bone-dim); font-size: 15px; }
+.programme__list strong { color: var(--bone); }
+
+/* ── Attire ──────────────────────────────────────────────────────────── */
+.attire {
+  display: grid; align-items: center;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  gap: clamp(32px, 6vw, 88px);
+}
+.attire__plate { margin: 0; padding: 10px; border: 1px solid rgba(200, 163, 90, 0.5); }
+.attire__plate img { aspect-ratio: 3 / 4; object-fit: cover; }
+.attire__copy > p { max-width: 44ch; color: var(--bone-dim); }
+.swatches {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: clamp(10px, 2vw, 20px);
+  margin: 30px 0 0; padding: 0; list-style: none;
+}
+.swatches li { display: grid; gap: 10px; justify-items: start; }
+.swatches i {
+  width: 100%; height: 46px;
+  background: var(--swatch);
+  border: 1px solid rgba(200, 163, 90, 0.45);
+}
+.swatches span {
+  color: var(--bone-dim);
+  font-family: var(--mono); font-size: 12px;
+  letter-spacing: 0.1em; text-transform: uppercase;
+}
+
+/* ── Countdown ───────────────────────────────────────────────────────── */
+.countdown { text-align: center; }
+.countdown__grid {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  border-block: 1px solid rgba(200, 163, 90, 0.34);
+}
+.countdown__grid div {
+  padding: clamp(22px, 4vw, 48px) 8px;
+  border-right: 1px solid rgba(200, 163, 90, 0.34);
+}
+.countdown__grid div:last-child { border-right: 0; }
+.countdown__grid strong {
+  display: block;
+  color: var(--champagne);
+  font-size: clamp(38px, 7vw, 88px); font-weight: 300; line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.countdown__grid span {
+  color: var(--bone-dim);
+  font-family: var(--mono); font-size: 12px;
+  letter-spacing: 0.16em; text-transform: uppercase;
+}
+.countdown__date {
+  margin: 26px 0 0;
+  color: var(--bone);
+  font-family: var(--mono); font-size: 13px;
+  letter-spacing: 0.16em; text-transform: uppercase;
+}
+
+/* ── Reply ───────────────────────────────────────────────────────────── */
+.rsvp { display: grid; justify-items: center; text-align: center; }
+.rsvp__ornament {
+  width: min(40vw, 260px); height: 80px; margin-bottom: 26px;
+  opacity: 0.75;
+}
+.rsvp > p { color: var(--bone-dim); }
+.rsvp__actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; margin-top: 12px; }
+.status-message { min-height: 24px; margin: 18px 0 0; color: var(--champagne); font-family: var(--mono); font-size: 13px; }
+
+.footer {
+  display: grid; justify-items: center; gap: 8px;
+  padding: clamp(40px, 6vw, 70px) var(--edge);
+  border-top: 1px solid rgba(200, 163, 90, 0.28);
+  text-align: center;
+}
+.footer p { margin: 0; color: var(--bone-dim); font-size: 15px; }
+
+/* ── Dialog ──────────────────────────────────────────────────────────── */
+.rsvp-dialog {
+  width: min(92vw, 520px);
+  padding: clamp(24px, 4vw, 40px);
+  border: 1px solid var(--champagne);
+  background: var(--black-soft); color: var(--bone);
+}
+.rsvp-dialog::backdrop { background: rgba(11, 12, 11, 0.82); }
+.rsvp-dialog form { display: grid; gap: 16px; }
+.rsvp-dialog label { display: grid; gap: 7px; font-size: 15px; }
+.rsvp-dialog input[type='text'], .rsvp-dialog input[type='email'], .rsvp-dialog textarea {
+  padding: 12px 14px;
+  border: 1px solid rgba(200, 163, 90, 0.5);
+  background: var(--black); color: var(--bone);
+  font-size: 16px;
+}
+.rsvp-dialog fieldset { margin: 0; padding: 0; border: 0; display: grid; gap: 8px; }
+.rsvp-dialog legend { padding: 0; margin-bottom: 6px; font-size: 15px; }
+.choice { grid-template-columns: auto 1fr; align-items: center; gap: 10px; }
+.choice input { width: 18px; height: 18px; accent-color: var(--champagne); }
+.form-status { min-height: 22px; margin: 0; color: var(--champagne); font-family: var(--mono); font-size: 13px; }
+.dialog__actions { display: flex; justify-content: flex-end; gap: 12px; }
+
+/* ═══ The signature move ══════════════════════════════════════════════
+   Deco is bilateral before it is anything else: every facade, grille and
+   fan on this page is built to be folded down its own centre line. So the
+   page assembles the same way. Paired blocks arrive from opposite edges
+   and meet on the axis, rather than rising together from below.
+
+   Transform only, never opacity. If the trigger never fires, the content
+   is simply not offset; an invitation has to fail readable. */
+.converge { will-change: transform; }
+
+@media (max-width: 860px) {
+  .invitation, .story__row, .attire { grid-template-columns: 1fr; }
+  .attire__plate { order: 2; }
+  .swatches { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .countdown__grid { grid-template-columns: repeat(2, 1fr); }
+  .countdown__grid div:nth-child(2) { border-right: 0; }
+  .countdown__grid div:nth-child(-n + 2) { border-bottom: 1px solid rgba(200, 163, 90, 0.34); }
+  .hero__meta { position: static; display: block; }
+  .hero__meta--left { margin-bottom: 4px; }
+  .hero__meta--right { margin-bottom: 26px; }
+  .programme__list li { grid-template-columns: minmax(74px, 0.3fr) minmax(0, 1fr); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .converge { transform: none !important; }
+  [data-draw], [data-draw] * { stroke-dasharray: none !important; stroke-dashoffset: 0 !important; }
+}
+
+/* ── Measured contrast fixes ──────────────────────────────────────────────
+   Champagne on the emerald venue panel is 4.02:1, short of the 4.5 that
+   small text needs. Scoped to .venue rather than moved on the token, because
+   --champagne also drives every rule and motif accent on the black sections,
+   where the same pair reads at 7.9:1. --champagne-lt is already in the
+   palette and takes the pair to 5.43:1. */
+.venue .eyebrow,
+.venue .line-button { color: var(--champagne-lt); border-color: var(--champagne-lt); }
+.venue .line-button:hover { background: var(--champagne-lt); color: var(--black); }
