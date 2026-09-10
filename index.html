@@ -195,8 +195,26 @@
       <footer class="footer">
         <span class="eyebrow">Noor &amp; Zayn &middot; 17.10.26</span>
         <p>Made in Karachi.</p>
+        <p class="footer__credit">
+          Music:
+          <a href="https://commons.wikimedia.org/wiki/File:%22Bluin'_the_Black_Keys%22_(1926),_by_Arthur_Schutt.oga"
+             target="_blank" rel="noreferrer">Bluin&rsquo; the Black Keys by Arthur Schutt, 1926 &middot; Public domain</a>
+        </p>
       </footer>
     </main>
+
+    <!-- Ogg first for Chrome and Firefox, AAC behind it for Safari and iOS,
+         which will not take Opus in an Ogg container. preload is none so the
+         two megabytes only move for someone who actually opens the doors. -->
+    <audio id="site-music" loop preload="none">
+      <source src="/assets/deco-band-1926.ogg" type="audio/ogg; codecs=opus" />
+      <source src="/assets/deco-band-1926.m4a" type="audio/mp4; codecs=mp4a.40.2" />
+    </audio>
+    <button class="music-toggle" id="music-toggle" type="button"
+            aria-pressed="false" aria-label="Play background music" hidden>
+      <span class="music-toggle__icon" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span class="music-toggle__label">Play music</span>
+    </button>
 
     <dialog class="rsvp-dialog" id="rsvp-dialog" aria-labelledby="dialog-title">
       <form method="dialog" id="rsvp-form">

@@ -896,12 +896,21 @@ export function decoFan({ draw = true, rays = 9, bands = 3 } = {}) {
  * `xMidYMid` and 960 wide the band scaled up 1.35x and sliced its own top and
  * bottom rules clean off, which is the exact failure the kit notes warn about.
  */
-export function decoRule({ draw = true, units = 40 } = {}) {
-  // A 4:1 repeat against the band height. At 2:1 the ziggurat came out as a
-  // fine tooth-comb — twenty-one repeats across a desktop, reading as graph
-  // paper rather than as a cornice.
-  const P = 120, W = P * units;
-  const BASE = 26, TOP = 8, STEP = 6, TREAD = 16;
+export function decoRule({ draw = true, units = 40, period = 120 } = {}) {
+  // A 4:1 repeat against the band height by default. At 2:1 the ziggurat came
+  // out as a fine tooth-comb — twenty-one repeats across a desktop, reading as
+  // graph paper rather than as a cornice.
+  //
+  // `period` is a knob so a host can make the band land on whole repeats at
+  // its own width: pick the repeat count nearest the default, then stretch or
+  // squeeze the period to divide the visible span exactly. Left alone the
+  // band tiles at 120 and simply crops, which is fine mid-page and wrong
+  // anywhere the two ends are both on screen.
+  const P = period, W = P * units;
+  // BASE sits 4 units clear of the lower rule at 28. At 26 the drop into each
+  // valley landed within a couple of pixels of it and read as touching.
+  const BASE = 24, TOP = 7, STEP = 5.5, TREAD = P * (2 / 15);
+  const n = (v) => Math.round(v * 100) / 100;
   const sky = [];
   const flutes = [];
   for (let i = 0; i < units; i += 1) {
@@ -909,24 +918,24 @@ export function decoRule({ draw = true, units = 40 } = {}) {
     // Up three treads, across the plateau, down three: the ziggurat every
     // 1930s cornice, radiator grille and lift door in Karachi was cut from.
     sky.push(
-      `M${x} ${BASE}`,
-      `L${x} ${BASE - STEP} L${x + TREAD} ${BASE - STEP}`,
-      `L${x + TREAD} ${BASE - STEP * 2} L${x + TREAD * 2} ${BASE - STEP * 2}`,
-      `L${x + TREAD * 2} ${TOP} L${x + P - TREAD * 2} ${TOP}`,
-      `L${x + P - TREAD * 2} ${BASE - STEP * 2} L${x + P - TREAD} ${BASE - STEP * 2}`,
-      `L${x + P - TREAD} ${BASE - STEP} L${x + P} ${BASE - STEP}`,
-      `L${x + P} ${BASE}`,
+      `M${n(x)} ${BASE}`,
+      `L${n(x)} ${BASE - STEP} L${n(x + TREAD)} ${BASE - STEP}`,
+      `L${n(x + TREAD)} ${BASE - STEP * 2} L${n(x + TREAD * 2)} ${BASE - STEP * 2}`,
+      `L${n(x + TREAD * 2)} ${TOP} L${n(x + P - TREAD * 2)} ${TOP}`,
+      `L${n(x + P - TREAD * 2)} ${BASE - STEP * 2} L${n(x + P - TREAD)} ${BASE - STEP * 2}`,
+      `L${n(x + P - TREAD)} ${BASE - STEP} L${n(x + P)} ${BASE - STEP}`,
+      `L${n(x + P)} ${BASE}`,
     );
     // A keystone tick hung from the plateau, not a full-height flute: run it
     // down to the baseline and it reads as a stray mark floating in the void
     // under the ziggurat rather than as part of the cornice.
-    flutes.push(`M${x + P / 2} ${TOP} L${x + P / 2} ${TOP + 8}`);
+    flutes.push(`M${n(x + P / 2)} ${TOP} L${n(x + P / 2)} ${TOP + 7}`);
   }
-  return `<svg class="motif motif--deco-rule" viewBox="0 0 ${W} 30"
+  return `<svg class="motif motif--deco-rule" viewBox="0 0 ${n(W)} 30"
        preserveAspectRatio="xMinYMid slice" aria-hidden="true" focusable="false">
     <g ${S} ${draw ? 'data-draw' : ''}>
-      <path d="M0 2 L${W} 2"/>
-      <path d="M0 28 L${W} 28"/>
+      <path d="M0 2 L${n(W)} 2"/>
+      <path d="M0 28 L${n(W)} 28"/>
     </g>
     <path ${SA} d="${sky.join(' ')}" opacity=".8"/>
     <path ${SA} d="${flutes.join(' ')}" opacity=".45"/>

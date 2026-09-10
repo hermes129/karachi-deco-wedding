@@ -32,7 +32,7 @@ export function initMotifs(root = document) {
   });
 }
 
-function renderMotif(host) {
+export function renderMotif(host) {
   const make = kit[host.dataset.motif];
   if (typeof make !== 'function') return;
   const opts = {};
@@ -40,6 +40,8 @@ function renderMotif(host) {
   if (host.dataset.motifSize) opts.size = Number(host.dataset.motifSize);
   if (host.dataset.motifOpacity) opts.opacity = Number(host.dataset.motifOpacity);
   if (host.dataset.motifUnits) opts.units = Number(host.dataset.motifUnits);
+  if (host.dataset.motifPeriod) opts.period = Number(host.dataset.motifPeriod);
+  if (host.dataset.motifDraw === 'false') opts.draw = false;
   host.innerHTML = make(opts);
 }
 

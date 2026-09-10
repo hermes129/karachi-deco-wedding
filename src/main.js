@@ -1,7 +1,7 @@
 import './styles.css';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { initMotifs, initDraw } from './utils/draw.js';
+import { initMotifs, initDraw, renderMotif } from './utils/draw.js';
 import { initDateScratch } from './date-scratch.js';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -10,11 +10,51 @@ const $ = (selector, scope = document) => scope.querySelector(selector);
 const $$ = (selector, scope = document) => [...scope.querySelectorAll(selector)];
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-// Inject the illustration layer before anything measures the DOM, so initDraw
-// can find the paths it needs to dash out.
+/* ── Fitting the cornice band ─────────────────────────────────────────────
+   A sliced band crops wherever the viewport happens to fall, so the cornice
+   ended mid-step at both ends and read as a torn strip rather than a run of
+   masonry. Both of its ends are on screen at once, so that crop is the whole
+   impression.
+
+   Instead: work out how many viewBox units are visible across the host at the
+   scale its height sets, take the repeat count nearest the motif's natural
+   4:1, and divide the span by it. The viewBox then measures exactly what is
+   visible, so nothing crops in either axis and the band always begins and
+   ends on a whole ziggurat. The period stretches by a few percent to make it
+   land, which is invisible; a half-step hanging off each end is not. */
+function fitBands() {
+  $$('[data-motif="decoRule"]').forEach((host) => {
+    const box = host.getBoundingClientRect();
+    if (!box.width || !box.height) return;
+    const visible = (box.width * 30) / box.height;
+    const units = Math.max(2, Math.round(visible / 120));
+    host.dataset.motifUnits = String(units);
+    host.dataset.motifPeriod = (visible / units).toFixed(3);
+  });
+}
+
+// Measured before injection: the hosts are sized by CSS, so their boxes are
+// already correct while they are still empty.
+fitBands();
 initMotifs();
 initDraw(reduceMotion);
 initDateScratch();
+
+/* Re-fit on resize. The redraw is painted finished rather than re-animated —
+   a band that re-dashes itself every time an address bar collapses is noise. */
+let fitTimer;
+window.addEventListener('resize', () => {
+  window.clearTimeout(fitTimer);
+  fitTimer = window.setTimeout(() => {
+    $$('[data-motif="decoRule"]').forEach((host) => {
+      const before = host.dataset.motifPeriod;
+      fitBands();
+      if (host.dataset.motifPeriod === before) return;
+      host.dataset.motifDraw = 'false';
+      renderMotif(host);
+    });
+  }, 180);
+});
 
 /* ── The gate ─────────────────────────────────────────────────────────────
    The scroll lock is set from script rather than from the markup: if the
@@ -37,6 +77,11 @@ const finishOpening = () => {
 const revealInvitation = () => {
   if (invitationOpened) return;
   invitationOpened = true;
+
+  // The click is the user gesture the browser wants before any audio plays,
+  // so the band starts here and the control appears with it.
+  if (musicToggle) musicToggle.hidden = false;
+  setMusicPlaying(true);
 
   if (reduceMotion) {
     finishOpening();
@@ -119,6 +164,48 @@ if (!reduceMotion) {
     scrollTrigger: { trigger: '.venue', start: 'top bottom', end: 'bottom top', scrub: 0.9 },
   });
 }
+
+/* ── Music ────────────────────────────────────────────────────────────────
+   Arthur Schutt's "Bluin' the Black Keys", 1926 — a piano novelty from the
+   decade the building went up, and the closest thing to what a hotel courtyard
+   in Saddar would actually have had a band playing.
+
+   It starts on the gate click, because that is the one gesture the browser
+   will accept as consent to make noise, and the control appears at the same
+   moment. If autoplay is refused anyway the button is still there and still
+   correct — the catch is the whole error handling. */
+const music = $('#site-music');
+const musicToggle = $('#music-toggle');
+const musicLabel = musicToggle?.querySelector('.music-toggle__label');
+
+if (music) music.volume = 0.26;
+
+function syncMusicControl() {
+  if (!music || !musicToggle) return;
+  const playing = !music.paused;
+  musicToggle.setAttribute('aria-pressed', String(playing));
+  musicToggle.setAttribute('aria-label', playing ? 'Pause background music' : 'Play background music');
+  if (musicLabel) musicLabel.textContent = playing ? 'Pause music' : 'Play music';
+}
+
+async function setMusicPlaying(shouldPlay) {
+  if (!music) return;
+  if (!shouldPlay) {
+    music.pause();
+    syncMusicControl();
+    return;
+  }
+  try {
+    await music.play();
+  } catch {
+    // Autoplay declined. The control stays available and honest.
+  }
+  syncMusicControl();
+}
+
+musicToggle?.addEventListener('click', () => setMusicPlaying(music?.paused ?? true));
+music?.addEventListener('play', syncMusicControl);
+music?.addEventListener('pause', syncMusicControl);
 
 /* ── Countdown ──────────────────────────────────────────────────────────── */
 const weddingTime = new Date('2026-10-17T19:00:00+05:00').getTime();
